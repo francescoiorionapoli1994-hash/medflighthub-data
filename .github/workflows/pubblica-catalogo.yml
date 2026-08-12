@@ -1,0 +1,47 @@
+name: Pubblica catalogo MedFlight Hub
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "anac_catalog.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: medflighthub-pages
+  cancel-in-progress: true
+
+jobs:
+  pubblica:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Leggi il catalogo
+        uses: actions/checkout@v4
+
+      - name: Prepara i dati per l’app
+        run: |
+          mkdir -p public
+          cp anac_catalog.json public/anac_catalog.json
+
+      - name: Configura GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Prepara la pubblicazione
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Pubblica il catalogo
+        id: deployment
+        uses: actions/deploy-pages@v4
