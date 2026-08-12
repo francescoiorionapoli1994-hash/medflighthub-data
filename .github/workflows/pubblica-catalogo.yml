@@ -1,47 +1,47 @@
-name: Aggiorna e pubblica MedFlight Hub
+name: Pubblica catalogo MedFlight Hub
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "17 4 * * *"
+  push:
+    branches:
+      - main
+    paths:
+      - "anac_catalog.json"
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
 concurrency:
-  group: medflighthub-update
-  cancel-in-progress: false
+  group: medflighthub-pages
+  cancel-in-progress: true
 
 jobs:
-  aggiorna:
+  pubblica:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     runs-on: ubuntu-latest
-    timeout-minutes: 45
 
     steps:
-      - name: Leggi i file del progetto
+      - name: Leggi il catalogo
         uses: actions/checkout@v4
 
-      - name: Cerca le fonti ufficiali ANAC
+      - name: Prepara i dati per l’app
         run: |
-          python3 scopri_fonti_anac.py > fonti_anac.txt
-          test -s fonti_anac.txt
+          mkdir -p public
+          cp anac_catalog.json public/anac_catalog.json
 
-      - name: Filtra le gare per MedFlight Hub
-        shell: bash
-        run: |
-          mapfile -t FONTI < fonti_anac.txt
-          python3 anac_importer.py "${FONTI[@]}" \
-            --output anac_catalog.json
+      - name: Configura GitHub Pages
+        uses: actions/configure-pages@v5
 
-      - name: Salva il catalogo aggiornato
-        run: |
-          git config user.name "MedFlight Hub Cloud"
-          git config user.email "actions@github.com"
-          git add anac_catalog.json
-          if ! git
+      - name: Prepara la pubblicazione
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Pubblica il catalogo
+        id: deployment
+        uses: actions/deploy-pages@v4
